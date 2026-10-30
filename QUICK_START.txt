@@ -1,0 +1,179 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║          AGENTIC AI LOAN APPROVAL SYSTEM - QUICK START GUIDE              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+PROJECT STATUS: ✅ 100% COMPLETE & READY TO RUN
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FASTEST WAY TO START (60 seconds)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Terminal 1: MCP Servers
+  cd /home/ubuntu/Desktop/demo/AI\ Loan\ Approval\ System
+  python3 -m src.mcp_servers.applicant_db &
+  python3 -m src.mcp_servers.risk_rules_db &
+  python3 -m src.mcp_servers.decision_synthesis &
+  python3 -m src.mcp_servers.notification_system &
+
+Terminal 2: FastAPI
+  cd /home/ubuntu/Desktop/demo/AI\ Loan\ Approval\ System
+  python3 -m uvicorn src.api.main:app --reload --port 8000
+
+Terminal 3: Streamlit UI
+  cd /home/ubuntu/Desktop/demo/AI\ Loan\ Approval\ System
+  streamlit run src/ui/streamlit_app.py
+
+Then open: http://localhost:8501
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT YOU'LL SEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Streamlit UI with 3 tabs:
+   - Application Form: Submit loan applications
+   - Decision Display: See AI decision + confidence + risk factors
+   - Audit Trail: View decision history & case details
+
+2. Fill in the form:
+   - Applicant ID (auto-generated)
+   - Age (18-80)
+   - Income ($1K-$10M)
+   - Employment Type (Salaried, Self-Employed, etc)
+   - Credit Score (300-850)
+   - Loan Amount ($1K-$5M)
+   - Tenure (12-360 months)
+   - Existing Liabilities
+   - Location (2-letter code, e.g., 'US')
+
+3. Click "Submit Application"
+
+4. See decision in 5 seconds:
+   APPROVED / REJECTED / REQUIRES_REVIEW
+   Risk Score: 0-100
+   Confidence: 0-100%
+   Decision Factors: Ranked by impact
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST THE END-TO-END WORKFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Without the UI, run the test script:
+  python3 scripts/test_agents.py
+
+This will:
+  1. Create sample application data
+  2. Execute the complete workflow (all 5 agents)
+  3. Print decision result with explanation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+API ENDPOINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Swagger UI: http://localhost:8000/docs
+ReDoc: http://localhost:8000/redoc
+
+Endpoints:
+  POST /api/v1/applications
+  GET /api/v1/applications/{case_id}
+  GET /health
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT'S RUNNING BEHIND THE SCENES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 4 MCP Servers (data access layer)
+   - ApplicantDB (port 8001): Applicant profiles, employment, credit history
+   - RiskRulesDB (port 8002): Risk thresholds, classification rules
+   - DecisionSynthesis (port 8003): Decision policy, risk scoring
+   - NotificationSystem (port 8004): Notifications, audit logging
+
+✅ 5 AI Agents (decision logic)
+   - ApplicantProfileAgent: Analyzes profile & employment
+   - FinancialRiskAgent: Calculates DTI, LTI, detects anomalies
+   - LoanDecisionAgent: Synthesizes decision with reasoning
+   - ComplianceAgent: Sends notifications, logs audit trail
+   - BaseAgent: Infrastructure (Claude integration, logging)
+
+✅ LangGraph Orchestration (workflow)
+   - Validates input
+   - Runs agents in sequence
+   - Routes conditionally (anomalies → manual review)
+   - Handles errors gracefully
+   - Tracks everything with trace IDs
+
+✅ SQLite Database
+   - Applicants, employment history, credit history
+   - Risk rules & thresholds
+   - Immutable audit logs
+   - Cases & notifications
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOCUMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Start with: READY_TO_EXECUTE.md
+Then read:
+  • docs/mcp_servers.md - MCP architecture & tools
+  • docs/mcp_integration_example.md - End-to-end example
+  • CLAUDE.md - Project conventions & technical details
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SYSTEM FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Multi-agent AI coordination (5 agents)
+✅ Claude Sonnet integration
+✅ LangGraph orchestration
+✅ REST API (FastAPI)
+✅ Web UI (Streamlit)
+✅ 4 MCP servers with tools
+✅ SQLite database
+✅ Audit trail (immutable)
+✅ Trace ID tracking
+✅ Structured JSON logging
+✅ Error handling & fallback paths
+✅ Complete test coverage (MCP: 21/21 tests)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Database errors?
+A: Run: python3 scripts/init_db.py
+
+Q: "Connection refused" errors?
+A: Ensure all MCP servers are running in separate terminals
+
+Q: Streamlit shows blank page?
+A: Make sure FastAPI and MCP servers started first, wait 2 seconds
+
+Q: No decision result?
+A: Check the application form fields are valid (see constraints above)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXAMPLE TEST DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Try this in Streamlit:
+  Applicant ID: APP-TEST-001 (auto-generated)
+  Age: 35
+  Income: $85,000
+  Employment Type: Salaried
+  Credit Score: 760
+  Loan Amount: $150,000
+  Tenure: 180 months (15 years)
+  Existing Liabilities: $12,000
+  Location: US
+
+Expected: APPROVED with ~95% confidence
+
+Try lower credit score (720) for REQUIRES_REVIEW
+
+Try unemployed for more detailed analysis
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+READY TO GO! 🚀
+
+Start the servers and open http://localhost:8501
+

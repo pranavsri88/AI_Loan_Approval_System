@@ -1,0 +1,173 @@
+{
+  "comment": "Decision rules and financial thresholds - can be updated via API",
+  "version": "1.0",
+  "last_updated": "2026-10-29",
+  "dti_thresholds": {
+    "favorable": {
+      "min": 0.0,
+      "max": 0.36,
+      "description": "DTI < 0.36 - Favorable debt burden"
+    },
+    "acceptable": {
+      "min": 0.36,
+      "max": 0.43,
+      "description": "DTI 0.36-0.43 - Acceptable debt burden"
+    },
+    "borderline": {
+      "min": 0.43,
+      "max": 0.50,
+      "description": "DTI 0.43-0.50 - Borderline, flag for manual review"
+    },
+    "high_risk": {
+      "min": 0.50,
+      "max": 1.0,
+      "description": "DTI > 0.50 - High risk, auto-reject criteria"
+    }
+  },
+  "credit_score_bands": {
+    "excellent": {
+      "min": 750,
+      "max": 850,
+      "risk_level": "LOW",
+      "description": "Excellent credit history"
+    },
+    "good": {
+      "min": 700,
+      "max": 749,
+      "risk_level": "MODERATE",
+      "description": "Good credit history"
+    },
+    "fair": {
+      "min": 650,
+      "max": 699,
+      "risk_level": "MEDIUM",
+      "description": "Fair credit history"
+    },
+    "poor": {
+      "min": 550,
+      "max": 649,
+      "risk_level": "HIGH",
+      "description": "Poor credit history"
+    },
+    "very_poor": {
+      "min": 0,
+      "max": 549,
+      "risk_level": "VERY_HIGH",
+      "description": "Very poor credit - auto-reject criteria"
+    }
+  },
+  "lti_thresholds": {
+    "favorable": {
+      "min": 0.0,
+      "max": 2.5,
+      "description": "LTI < 2.5 - Loan is reasonable relative to income"
+    },
+    "acceptable": {
+      "min": 2.5,
+      "max": 4.0,
+      "description": "LTI 2.5-4.0 - Acceptable loan size"
+    },
+    "high_risk": {
+      "min": 4.0,
+      "max": 100.0,
+      "description": "LTI > 4.0 - High risk, auto-reject criteria"
+    }
+  },
+  "decision_rules": {
+    "auto_approval_criteria": {
+      "description": "All conditions must be true to auto-approve",
+      "conditions": [
+        "credit_score >= 750",
+        "dti < 0.36",
+        "lti < 2.5",
+        "employment_risk == 'LOW'",
+        "anomaly_detected == false",
+        "income_stability_score >= 70"
+      ]
+    },
+    "auto_rejection_criteria": {
+      "description": "Any ONE condition triggers auto-reject",
+      "conditions": [
+        "credit_score < 550",
+        "dti > 0.50",
+        "lti > 4.0",
+        "employment_type == 'Unemployed' AND income_stability_score < 50"
+      ]
+    },
+    "manual_review_routing": {
+      "description": "Any ONE condition routes to manual review instead of auto-decision",
+      "conditions": [
+        "decision_confidence < 0.75",
+        "dti >= 0.36 AND dti <= 0.50",
+        "anomaly_score > 0.6",
+        "credit_score >= 700 AND credit_score < 750 AND borderline_metrics",
+        "recent_employment_gap > 6",
+        "age < 21 OR age > 70 WITH strong_other_factors"
+      ]
+    }
+  },
+  "anomaly_detection_rules": {
+    "income_spike_threshold": 1.5,
+    "description": "Income increase > 150% year-over-year is flagged",
+    "employment_gap_months": 6,
+    "description_gap": "Employment gap > 6 months is flagged",
+    "credit_inquiries_threshold": 3,
+    "description_inquiries": "More than 3 credit inquiries in past 3 months is flagged",
+    "liabilities_spike_threshold": 1.3,
+    "description_liabilities": "Liabilities increase > 130% is flagged"
+  },
+  "confidence_calculation": {
+    "formula": "(agent_agreement + metric_alignment + historical_match) / 3",
+    "agent_agreement": "Correlation of agent recommendations (0-1)",
+    "metric_alignment": "Adherence to decision rules (0-1)",
+    "historical_match": "Similarity to approved historical cases (0-1)",
+    "threshold_for_auto_decision": 0.75,
+    "description": "If confidence >= 0.75, auto-decide; otherwise route to manual review"
+  },
+  "decision_factor_weights": {
+    "description": "Weights for ranking decision factors by influence",
+    "credit_score": 0.40,
+    "dti": 0.30,
+    "lti": 0.15,
+    "income_stability": 0.10,
+    "employment_risk": 0.05,
+    "note": "Weights must sum to 1.0"
+  },
+  "employment_risk_classification": {
+    "low": {
+      "description": "Employed >= 2 years at same company with stable income",
+      "tenure_months_min": 24,
+      "income_variance_max": 0.10
+    },
+    "medium": {
+      "description": "Employed 1-2 years OR recent job change within 2 years",
+      "tenure_months_min": 12,
+      "tenure_months_max": 24
+    },
+    "high": {
+      "description": "Unemployed OR multiple job changes OR employed < 1 year",
+      "tenure_months_max": 12,
+      "conditions": [
+        "employment_type == 'Unemployed'",
+        "multiple_job_changes_recent",
+        "tenure_months < 12"
+      ]
+    }
+  },
+  "income_stability_score_calculation": {
+    "description": "Calculated as 0-100 based on employment history",
+    "components": [
+      "Tenure at current job (years)",
+      "Income consistency (variance)",
+      "Employment history (gaps, changes)",
+      "Industry stability (if available)"
+    ],
+    "scoring_example": {
+      "5_years_stable": 85,
+      "2_years_stable": 70,
+      "1_year": 50,
+      "employment_gap": "Reduce by 20-30 points",
+      "recent_job_change": "Reduce by 15-20 points"
+    }
+  }
+}

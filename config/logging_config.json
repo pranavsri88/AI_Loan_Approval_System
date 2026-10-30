@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "json": {
+      "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+      "format": "%(timestamp)s %(level)s %(name)s %(message)s %(trace_id)s %(applicant_id)s %(latency_ms)s %(status)s"
+    },
+    "standard": {
+      "format": "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)d] %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "detailed": {
+      "format": "[%(asctime)s] %(levelname)s [%(name)s:%(funcName)s:%(lineno)d] %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "standard",
+      "stream": "ext://sys.stdout"
+    },
+    "console_json": {
+      "class": "logging.StreamHandler",
+      "level": "DEBUG",
+      "formatter": "json",
+      "stream": "ext://sys.stdout"
+    },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "json",
+      "filename": "./logs/app.log",
+      "maxBytes": 104857600,
+      "backupCount": 10,
+      "encoding": "utf-8"
+    },
+    "file_text": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "level": "INFO",
+      "formatter": "standard",
+      "filename": "./logs/app.txt",
+      "maxBytes": 104857600,
+      "backupCount": 10,
+      "encoding": "utf-8"
+    }
+  },
+  "loggers": {
+    "src.api": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.orchestration": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.agents": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.mcp_servers": {
+      "level": "INFO",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.ui": {
+      "level": "INFO",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.database": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"],
+      "propagate": false
+    },
+    "src.utils": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"],
+      "propagate": false
+    }
+  },
+  "root": {
+    "level": "INFO",
+    "handlers": ["console", "file"]
+  }
+}
