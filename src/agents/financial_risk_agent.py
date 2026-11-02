@@ -20,6 +20,7 @@ from src.agents.prompts import (
 )
 from src.utils.schemas import FinancialAnalysis
 from src.utils.logger import get_logger
+from src.mcp_clients.mcp_client import get_mcp_client
 
 logger = get_logger(__name__)
 
@@ -68,37 +69,67 @@ class FinancialRiskAgent(BaseAgent):
             monthly_debt_new = (loan_amount / tenure_months)
             total_monthly_debt = monthly_debt_current + monthly_debt_new
             dti = total_monthly_debt / monthly_income if monthly_income > 0 else 1.0
-            
+
             # Step 2: Calculate LTI (loan-to-income ratio)
             lti = loan_amount / income if income > 0 else 0.0
-            
-            # Step 3: Classify DTI
-            if dti < 0.36:
+
+            # Step 3: Try to fetch risk thresholds from RiskRulesDB MCP
+            mcp_client = get_mcp_client()
+            dti_classification = "BORDERLINE"  # Default
+            lti_classification = "MODERATE"    # Default
+            credit_risk = "MEDIUM"              # Default
+
+            try:
+                # Fetch and use MCP thresholds if available
+                thresholds = mcp_client.get_risk_thresholds()
+                if thresholds:
+                    dti_favorable = thresholds.get("dti_favorable_max", 0.36)
+                    dti_acceptable = thresholds.get("dti_acceptable_max", 0.43)
+                    dti_borderline = thresholds.get("dti_borderline_max", 0.50)
+                    lti_favorable = thresholds.get("lti_favorable_max", 2.5)
+                    lti_acceptable = thresholds.get("lti_acceptable_max", 4.0)
+                    credit_excellent = thresholds.get("credit_excellent_min", 750)
+                    credit_good = thresholds.get("credit_good_min", 700)
+                    credit_fair = thresholds.get("credit_fair_min", 650)
+                    credit_poor = thresholds.get("credit_poor_min", 550)
+                    logger.info("[MCP] Fetched risk thresholds from RiskRulesDB")
+                else:
+                    logger.warning("[MCP] No response from RiskRulesDB, using defaults")
+                    dti_favorable, dti_acceptable, dti_borderline = 0.36, 0.43, 0.50
+                    lti_favorable, lti_acceptable = 2.5, 4.0
+                    credit_excellent, credit_good, credit_fair, credit_poor = 750, 700, 650, 550
+            except Exception as e:
+                logger.warning(f"[MCP] RiskRulesDB unavailable, using hardcoded thresholds: {e}")
+                dti_favorable, dti_acceptable, dti_borderline = 0.36, 0.43, 0.50
+                lti_favorable, lti_acceptable = 2.5, 4.0
+                credit_excellent, credit_good, credit_fair, credit_poor = 750, 700, 650, 550
+
+            # Classify DTI using thresholds
+            if dti < dti_favorable:
                 dti_classification = "FAVORABLE"
-            elif dti < 0.43:
+            elif dti < dti_acceptable:
                 dti_classification = "ACCEPTABLE"
-            elif dti < 0.50:
+            elif dti < dti_borderline:
                 dti_classification = "BORDERLINE"
             else:
                 dti_classification = "HIGH_RISK"
-            
-            # Step 4: Classify LTI
-            # Note: FinancialAnalysis schema uses loan_amount_risk field which only accepts LOW|MODERATE|HIGH
-            if lti < 2.5:
+
+            # Classify LTI using thresholds
+            if lti < lti_favorable:
                 lti_classification = "LOW"
-            elif lti < 4.0:
+            elif lti < lti_acceptable:
                 lti_classification = "MODERATE"
             else:
                 lti_classification = "HIGH"
-            
-            # Step 5: Classify credit score risk
-            if credit_score >= 750:
+
+            # Classify credit score risk using thresholds
+            if credit_score >= credit_excellent:
                 credit_risk = "LOW"
-            elif credit_score >= 700:
+            elif credit_score >= credit_good:
                 credit_risk = "MODERATE"
-            elif credit_score >= 650:
+            elif credit_score >= credit_fair:
                 credit_risk = "MEDIUM"
-            elif credit_score >= 550:
+            elif credit_score >= credit_poor:
                 credit_risk = "HIGH"
             else:
                 credit_risk = "VERY_HIGH"

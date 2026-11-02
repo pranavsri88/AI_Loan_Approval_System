@@ -137,13 +137,13 @@ async def get_application_decision(trace_id: str) -> DecisionResponse:
     
     return DecisionResponse(
         trace_id=trace_id,
-        applicant_id=result.get("applicant_id"),
+        applicant_id=result.get("applicant_id") or "",
         status="COMPLETED",
         decision=result.get("decision"),
         risk_score=result.get("risk_score"),
         confidence=result.get("confidence"),
-        decision_factors=result.get("decision_factors", []),
-        explanation=result.get("explanation"),
+        decision_factors=result.get("decision_factors") or [],
+        explanation=result.get("explanation") or "",
     )
 
 

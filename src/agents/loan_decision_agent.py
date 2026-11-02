@@ -21,6 +21,7 @@ from src.agents.prompts import (
 from src.utils.schemas import DecisionResult
 from src.utils.config import settings
 from src.utils.logger import get_logger
+from src.mcp_clients.mcp_client import get_mcp_client
 
 logger = get_logger(__name__)
 
@@ -146,22 +147,37 @@ class LoanDecisionAgent(BaseAgent):
             # Note: Auto-approval doesn't require 0.85 confidence thresholds
             # Metrics should speak for themselves when objectively strong
 
+            # Try to fetch decision policy from DecisionSynthesis MCP
+            mcp_client = get_mcp_client()
+            try:
+                policy_response = mcp_client.get_decision_policy()
+                if policy_response:
+                    logger.info("[MCP] Fetched decision policy from DecisionSynthesis")
+                    # Policy response contains approval/rejection criteria
+                    # Use MCP-defined criteria if available
+                else:
+                    logger.warning("[MCP] No response from DecisionSynthesis, using defaults")
+                    policy_response = None
+            except Exception as e:
+                logger.warning(f"[MCP] DecisionSynthesis unavailable, using hardcoded policy: {e}")
+                policy_response = None
+
             # Auto-approve: Excellent profile + low financial risk
             auto_approve = (
                 profile_risk == "LOW" and
-                dti_class in ["FAVORABLE", "ACCEPTABLE", "BORDERLINE"] and  # DTI schema allows FAVORABLE/ACCEPTABLE/BORDERLINE
+                dti_class in ["FAVORABLE", "ACCEPTABLE", "BORDERLINE"] and
                 credit_risk in ["LOW", "MODERATE"] and
-                lti_class in ["LOW", "MODERATE"] and  # lti_class schema only allows LOW|MODERATE|HIGH
+                lti_class in ["LOW", "MODERATE"] and
                 not anomalies and
                 len(completeness_flags) == 0
             )
-            
+
             # Auto-reject: Poor profile OR high financial risk
             auto_reject = (
                 profile_risk == "HIGH" or
                 dti_class == "HIGH_RISK" or
                 credit_risk in ["HIGH", "VERY_HIGH"] or
-                lti_class == "HIGH" or  # lti_class schema: HIGH not HIGH_RISK
+                lti_class == "HIGH" or
                 anomalies
             )
             

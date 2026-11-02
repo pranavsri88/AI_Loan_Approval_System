@@ -31,6 +31,7 @@ from src.agents.compliance_agent import ComplianceAgent
 from src.utils.schemas import ApplicationData
 from src.utils.logger import get_logger
 from src.utils.config import settings
+from src.mcp_clients.mcp_client import get_mcp_client
 
 logger = get_logger(__name__)
 
@@ -432,21 +433,45 @@ def run_application(applicant_data: Dict[str, Any]) -> Dict[str, Any]:
         final_state = graph.invoke(initial_state)
         
         # Extract results
+        decision_result = final_state.get("decision_result") or {}
         result = {
             "trace_id": trace_id,
             "applicant_id": applicant_data.get("applicant_id"),
             "decision": final_state.get("final_decision", "UNKNOWN"),
             "confidence": final_state.get("final_confidence", 0.0),
-            "risk_score": final_state.get("decision_result", {}).get("risk_score"),
+            "risk_score": decision_result.get("risk_score"),
             "case_id": final_state.get("case_id"),
             "agents_run": final_state.get("agents_run", []),
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
-        if final_state.get("decision_result"):
-            result["decision_factors"] = final_state["decision_result"].get("decision_factors", [])
-            result["explanation"] = final_state["decision_result"].get("explanation", "")
-        
+
+        if decision_result:
+            result["decision_factors"] = decision_result.get("decision_factors", [])
+            result["explanation"] = decision_result.get("explanation", "")
+
+        # Try to write audit log to NotificationSystem MCP
+        mcp_client = get_mcp_client()
+        try:
+            risk_score = result.get("risk_score")
+            if risk_score is None:
+                risk_score = final_state.get("decision_result", {}).get("risk_score", 0) if final_state.get("decision_result") else 0
+
+            audit_result = mcp_client.write_audit_log(
+                trace_id=trace_id,
+                case_id=result.get("case_id") or "",
+                applicant_id=result.get("applicant_id") or "",
+                decision=result.get("decision") or "UNKNOWN",
+                risk_score=int(risk_score) if risk_score is not None else 0,
+                confidence=float(result.get("confidence") or 0.0),
+                explanation=result.get("explanation") or "",
+                agents_run=result.get("agents_run") or [],
+                decision_factors=result.get("decision_factors") or []
+            )
+            if audit_result:
+                logger.info("[MCP] Audit log written to NotificationSystem")
+        except Exception as e:
+            logger.warning(f"[MCP] Failed to write audit log: {e}")
+
         logger.info(f"Workflow complete: {result['decision']} (case: {result['case_id']})")
         return result
     
