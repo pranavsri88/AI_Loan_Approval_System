@@ -331,13 +331,29 @@ class LoanDecisionAgent(BaseAgent):
                 decision_factors_summary="; ".join([f"{f['factor']}: {f['value']}" for f in decision_factors[:3]])
             )
             
-            claude_response = self.invoke_claude(
-                system_prompt=LOAN_DECISION_SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                output_schema=DecisionResult.schema(),
-            )
-            
-            # Step 7: Validate and return
+            # Step 7: Try Claude for enhanced explanation, fall back to metric-based if unavailable
+            claude_response = None
+            try:
+                claude_response = self.invoke_claude(
+                    system_prompt=LOAN_DECISION_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    output_schema=DecisionResult.schema(),
+                )
+            except Exception as claude_error:
+                self.logger.warning(f"Claude invocation failed, using metric-based explanation: {str(claude_error)}")
+                claude_response = None
+
+            # Generate metric-based explanation if Claude unavailable
+            if not claude_response:
+                if classification == "APPROVED":
+                    explanation = f"Strong financial profile approved: {credit_risk} credit ({applicant_credit}), favorable DTI ({calculated_dti:.1%}), and reasonable loan-to-income ratio ({calculated_lti:.2f}x)."
+                elif classification == "REJECTED":
+                    explanation = f"Application rejected due to financial risk: {credit_risk} credit ({applicant_credit}), high DTI/LTI ratio(s). Unable to sustain debt repayment."
+                else:
+                    explanation = f"Application requires manual review: {credit_risk} credit ({applicant_credit}), borderline financial metrics. Requires human underwriter assessment."
+                claude_response = {"explanation": explanation}
+
+            # Step 8: Validate and return
             decision_result = DecisionResult(
                 classification=classification,
                 risk_score=composite_risk,
