@@ -239,12 +239,14 @@ with tab2:
             
             with col1:
                 st.metric("Decision", decision, delta=None)
-            
+
             with col2:
-                st.metric("Confidence", f"{confidence:.1%}", delta=None)
-            
+                confidence_display = f"{confidence:.1%}" if confidence is not None else "N/A"
+                st.metric("Confidence", confidence_display, delta=None)
+
             with col3:
-                st.metric("Risk Score", f"{risk_score}/100", delta=None)
+                risk_display = f"{risk_score}/100" if risk_score is not None else "N/A"
+                st.metric("Risk Score", risk_display, delta=None)
             
             with col4:
                 case_id = result.get("case_id", "N/A")
