@@ -228,8 +228,21 @@ def decision_agent_node(state: ApplicationState) -> ApplicationState:
         
         if "error" in decision_result:
             logger.error(f"[DECISION] Agent error: {decision_result['error']}")
-            state["error_state"] = decision_result
-            state["final_decision"] = "REQUIRES_REVIEW"
+            logger.info("[DECISION] Using rules-based engine for decision")
+            # Use intelligent rules instead of just marking as REQUIRES_REVIEW
+            try:
+                from src.orchestration.decision_rules import make_intelligent_decision
+                rules_decision = make_intelligent_decision(state.get("applicant_data", {}))
+                state["decision_result"] = rules_decision
+                state["agents_run"].append("rules_engine")
+                state["final_decision"] = rules_decision.get("decision", "REQUIRES_REVIEW")
+                state["final_confidence"] = rules_decision.get("confidence", 0.5)
+                logger.info(f"[DECISION] Rules-based decision: {state['final_decision']} ({state['final_confidence']:.1%} confidence)")
+            except Exception as rules_error:
+                logger.error(f"[DECISION] Rules engine failed: {str(rules_error)}")
+                state["error_state"] = decision_result
+                state["final_decision"] = "REQUIRES_REVIEW"
+                state["final_confidence"] = 0.5
             return state
         
         state["decision_result"] = decision_result
@@ -252,8 +265,21 @@ def decision_agent_node(state: ApplicationState) -> ApplicationState:
     
     except Exception as e:
         logger.error(f"[DECISION] Agent execution failed: {str(e)}", exc_info=True)
-        state["error_state"] = {"error": str(e)}
-        state["final_decision"] = "REQUIRES_REVIEW"
+        logger.info("[DECISION] Using rules-based engine for decision")
+        # Use intelligent rules instead of just marking as REQUIRES_REVIEW
+        try:
+            from src.orchestration.decision_rules import make_intelligent_decision
+            rules_decision = make_intelligent_decision(state.get("applicant_data", {}))
+            state["decision_result"] = rules_decision
+            state["agents_run"].append("rules_engine")
+            state["final_decision"] = rules_decision.get("decision", "REQUIRES_REVIEW")
+            state["final_confidence"] = rules_decision.get("confidence", 0.5)
+            logger.info(f"[DECISION] Rules-based decision: {state['final_decision']} ({state['final_confidence']:.1%} confidence)")
+        except Exception as rules_error:
+            logger.error(f"[DECISION] Rules engine failed: {str(rules_error)}")
+            state["error_state"] = {"error": str(e)}
+            state["final_decision"] = "REQUIRES_REVIEW"
+            state["final_confidence"] = 0.5
         return state
 
 
