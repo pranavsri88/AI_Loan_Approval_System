@@ -30,7 +30,7 @@ class ApplicationData(BaseModel):
     applicant_id: str = Field(
         ...,
         min_length=8,
-        max_length=20,
+        max_length=50,
         description="Unique applicant identifier (UUID or alphanumeric)"
     )
     age: int = Field(
