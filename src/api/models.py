@@ -37,6 +37,7 @@ class DecisionResponse(BaseModel):
     applicant_id: str = Field(..., description="Applicant ID")
     status: str = Field(..., description="Status: PROCESSING|COMPLETED")
     decision: Optional[str] = Field(None, description="APPROVED|REJECTED|REQUIRES_REVIEW")
+    case_id: Optional[str] = Field(None, description="Case ID for audit trail (CASE-YYYY-MM-DD-NNNNN)")
     risk_score: Optional[int] = Field(None, description="Risk score 0-100")
     confidence: Optional[float] = Field(None, description="Confidence 0.0-1.0")
     decision_factors: Optional[List[Dict[str, Any]]] = Field(None, description="Decision factors")
