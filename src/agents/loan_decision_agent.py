@@ -172,11 +172,13 @@ class LoanDecisionAgent(BaseAgent):
                 len(completeness_flags) == 0
             )
 
-            # Auto-reject: Poor profile OR high financial risk
+            # Auto-reject: Poor profile AND/OR high financial risk
+            # CRITICAL FIX: Require multiple simultaneous bad conditions, not just HIGH_RISK DTI alone
+            # This prevents rejecting borderline profiles (e.g., high DTI but good credit)
             auto_reject = (
                 profile_risk == "HIGH" or
-                dti_class == "HIGH_RISK" or
-                credit_risk in ["HIGH", "VERY_HIGH"] or
+                (credit_risk in ["HIGH", "VERY_HIGH"] and dti_class == "HIGH_RISK") or
+                credit_risk == "VERY_HIGH" or
                 lti_class == "HIGH" or
                 anomalies
             )
