@@ -85,29 +85,35 @@ class ComplianceAgent(BaseAgent):
             # Step 3: Prepare audit trail entry
             logger.debug(f"Creating audit trail entry: {case_id}")
             
-            # Step 4: Invoke Claude for final reasoning and notification text
-            user_prompt = COMPLIANCE_ACTION_USER_PROMPT_TEMPLATE.format(
-                classification=decision,
-                timestamp=now.isoformat(),
-                case_id=case_id,
-                risk_score=decision_result.get("risk_score", 50),
-                confidence=decision_result.get("confidence", 0.5),
-                decision_factors_summary="; ".join([
-                    f"{f.get('factor', '')}: {f.get('value', '')}" 
-                    for f in decision_result.get("decision_factors", [])[:3]
-                ]),
-                applicant_id=applicant_id,
-            )
-            
-            claude_response = self.invoke_claude(
-                system_prompt=COMPLIANCE_ACTION_SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                output_schema=ComplianceAction.schema(),
-            )
-            
-            # Step 5: Create compliance action record
-            notification_status = claude_response.get("notification_status", "SENT")
-            
+            # Step 4: Try to invoke Claude for final reasoning, but fallback if unavailable
+            # IMPORTANT: case_id is already generated, so we can return it even if Claude fails
+            claude_response = None
+            try:
+                user_prompt = COMPLIANCE_ACTION_USER_PROMPT_TEMPLATE.format(
+                    classification=decision,
+                    timestamp=now.isoformat(),
+                    case_id=case_id,
+                    risk_score=decision_result.get("risk_score", 50),
+                    confidence=decision_result.get("confidence", 0.5),
+                    decision_factors_summary="; ".join([
+                        f"{f.get('factor', '')}: {f.get('value', '')}"
+                        for f in decision_result.get("decision_factors", [])[:3]
+                    ]),
+                    applicant_id=applicant_id,
+                )
+
+                claude_response = self.invoke_claude(
+                    system_prompt=COMPLIANCE_ACTION_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    output_schema=ComplianceAction.schema(),
+                )
+            except Exception as claude_error:
+                logger.warning(f"Claude invocation failed in compliance, using fallback: {str(claude_error)}")
+                claude_response = None
+
+            # Step 5: Create compliance action record (with or without Claude response)
+            notification_status = "SENT" if claude_response else "PENDING"
+
             compliance_action = ComplianceAction(
                 action_taken=action_taken,
                 notification_status=notification_status,
@@ -115,13 +121,13 @@ class ComplianceAgent(BaseAgent):
                 timestamp=now,
                 summary=summary
             )
-            
+
             # Step 6: Log audit trail (immutable append-only)
             logger.info(f"Audit trail logged: case_id={case_id}, action={action_taken}")
-            
+
             logger.info(f"Compliance action complete: {action_taken} for case {case_id}")
             return compliance_action.dict()
-        
+
         except Exception as e:
             logger.error(f"Compliance action failed: {str(e)}", exc_info=True)
             return {"error": str(e)}

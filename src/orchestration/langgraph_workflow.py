@@ -298,17 +298,20 @@ def compliance_agent_node(state: ApplicationState) -> ApplicationState:
             state["applicant_data"].get("applicant_id", "UNKNOWN"),
             state["trace_id"]
         )
-        
-        if "error" in compliance_result:
+
+        # Try to extract case_id even if there's an error (compliance agent should generate it)
+        case_id = compliance_result.get("case_id")
+
+        if "error" in compliance_result and not case_id:
             logger.error(f"[COMPLIANCE] Agent error: {compliance_result['error']}")
             state["error_state"] = compliance_result
             return state
-        
+
         state["compliance_action"] = compliance_result
-        state["case_id"] = compliance_result.get("case_id")
+        state["case_id"] = case_id
         state["agents_run"].append("compliance")
         state["timestamps"]["compliance"] = start_time
-        
+
         logger.info(f"[COMPLIANCE] Action complete: case_id={state['case_id']}")
         return state
     
@@ -357,19 +360,25 @@ def should_escalate_to_review(state: ApplicationState) -> str:
 def manual_review_node(state: ApplicationState) -> ApplicationState:
     """
     LangGraph Node: Manual Review Path.
-    
+
     Sets decision to REQUIRES_REVIEW if not already set.
+    Creates case ID for tracking.
     This node is where a human loan officer would review the case.
     """
     logger.info(f"[REVIEW] Case escalated for manual review")
-    
+
     if state["final_decision"] != "REQUIRES_REVIEW":
         state["final_decision"] = "REQUIRES_REVIEW"
-    
+
+    # Generate case ID for manual review cases
+    now = datetime.utcnow()
+    case_id = f"CASE-{now.strftime('%Y-%m-%d')}-{hash(state['trace_id']) % 100000:05d}"
+    state["case_id"] = case_id
+
     state["agents_run"].append("manual_review")
-    state["timestamps"]["manual_review"] = datetime.utcnow()
-    
-    logger.info(f"[REVIEW] Awaiting manual underwriter assessment")
+    state["timestamps"]["manual_review"] = now
+
+    logger.info(f"[REVIEW] Case {case_id} escalated for manual review")
     return state
 
 
